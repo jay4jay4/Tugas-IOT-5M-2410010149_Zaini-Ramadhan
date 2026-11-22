@@ -1,0 +1,601 @@
+[
+    {
+        "id": "a9c741e10837f545",
+        "type": "tab",
+        "label": "REST API IoT",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "0c30312c8277ab0b",
+        "type": "inject",
+        "z": "a9c741e10837f545",
+        "name": "Simulator ESP32 (3 detik)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "3",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "3",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 190,
+        "y": 40,
+        "wires": [
+            [
+                "4c316aab1abb45e6"
+            ]
+        ]
+    },
+    {
+        "id": "4c316aab1abb45e6",
+        "type": "function",
+        "z": "a9c741e10837f545",
+        "name": "Buat data acak",
+        "func": "var suhu = Math.round((25 + Math.random() * 7) * 10) / 10;\nvar kel = Math.round((55 + Math.random() * 25) * 10) / 10;\nmsg.payload = {suhu: suhu, kelembaban: kel, timestamp: new Date().toISOString()};\nmsg.topic = 'iot/sensor';\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 40,
+        "wires": [
+            [
+                "048ca74c668204e7"
+            ]
+        ]
+    },
+    {
+        "id": "048ca74c668204e7",
+        "type": "mqtt out",
+        "z": "a9c741e10837f545",
+        "name": "Publish Sensor",
+        "topic": "",
+        "qos": "0",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "mqtt_broker_config",
+        "x": 650,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "45f857eded0302b7",
+        "type": "inject",
+        "z": "a9c741e10837f545",
+        "name": "Buat tabel (sekali)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.5",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 170,
+        "y": 100,
+        "wires": [
+            [
+                "82d0839a1b96efd3"
+            ]
+        ]
+    },
+    {
+        "id": "82d0839a1b96efd3",
+        "type": "sqlite",
+        "z": "a9c741e10837f545",
+        "mydb": "79959ea275e6a1f2",
+        "sqlquery": "fixed",
+        "sql": "CREATE TABLE IF NOT EXISTS sensor (id INTEGER PRIMARY KEY AUTOINCREMENT, suhu REAL, kelembaban REAL, timestamp TEXT, received TEXT, alert INTEGER);",
+        "name": "CREATE TABLE sensor",
+        "x": 420,
+        "y": 100,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "95eae5de165b64c8",
+        "type": "mqtt in",
+        "z": "a9c741e10837f545",
+        "name": "Subscribe Sensor",
+        "topic": "iot/sensor",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "mqtt_broker_config",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 170,
+        "y": 190,
+        "wires": [
+            [
+                "1fb71fd6ed2dce25"
+            ]
+        ]
+    },
+    {
+        "id": "1fb71fd6ed2dce25",
+        "type": "function",
+        "z": "a9c741e10837f545",
+        "name": "Proses Data Sensor",
+        "func": "var data = msg.payload;\ndata.received = new Date().toISOString();\nvar batas = flow.get('threshold');\nif (batas === undefined) { batas = 35; }\ndata.alert = data.suhu > batas;\nflow.set('lastSensor', data);\n\nvar peringatan = null;\nif (data.alert) {\n    peringatan = {payload: 'PERINGATAN: suhu ' + data.suhu + ' C melebihi batas ' + batas + ' C'};\n}\nreturn [msg, peringatan];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 190,
+        "wires": [
+            [
+                "2d1ed08d20f0031f",
+                "85ebfece939bcb1f",
+                "3d605a87d3986d39"
+            ],
+            [
+                "3b0677a3d555854a"
+            ]
+        ]
+    },
+    {
+        "id": "2d1ed08d20f0031f",
+        "type": "debug",
+        "z": "a9c741e10837f545",
+        "name": "Log Sensor",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "x": 650,
+        "y": 150,
+        "wires": []
+    },
+    {
+        "id": "3b0677a3d555854a",
+        "type": "debug",
+        "z": "a9c741e10837f545",
+        "name": "Peringatan Suhu",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "x": 660,
+        "y": 230,
+        "wires": []
+    },
+    {
+        "id": "85ebfece939bcb1f",
+        "type": "websocket out",
+        "z": "a9c741e10837f545",
+        "name": "WebSocket /ws/sensor",
+        "server": "0a41b418ea35d360",
+        "client": "",
+        "x": 670,
+        "y": 190,
+        "wires": []
+    },
+    {
+        "id": "3d605a87d3986d39",
+        "type": "function",
+        "z": "a9c741e10837f545",
+        "name": "Siapkan INSERT",
+        "func": "var d = msg.payload;\nmsg.params = {\n    $suhu: d.suhu,\n    $kel: d.kelembaban,\n    $ts: d.timestamp,\n    $rec: d.received,\n    $alert: d.alert ? 1 : 0\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 640,
+        "y": 270,
+        "wires": [
+            [
+                "917a6dc630c68a82"
+            ]
+        ]
+    },
+    {
+        "id": "917a6dc630c68a82",
+        "type": "sqlite",
+        "z": "a9c741e10837f545",
+        "mydb": "79959ea275e6a1f2",
+        "sqlquery": "prepared",
+        "sql": "INSERT INTO sensor (suhu, kelembaban, timestamp, received, alert) VALUES ($suhu, $kel, $ts, $rec, $alert);",
+        "name": "INSERT sensor",
+        "x": 860,
+        "y": 270,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "c968346478cab70a",
+        "type": "http in",
+        "z": "a9c741e10837f545",
+        "name": "GET /api/suhu",
+        "url": "/api/suhu",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 170,
+        "y": 350,
+        "wires": [
+            [
+                "6840547f0869be0e"
+            ]
+        ]
+    },
+    {
+        "id": "6840547f0869be0e",
+        "type": "function",
+        "z": "a9c741e10837f545",
+        "name": "Build Response Suhu",
+        "func": "var API_KEY = 'rahasia123';\nif (msg.req.headers['x-api-key'] !== API_KEY) {\n    msg.statusCode = 401;\n    msg.payload = {status: 'error', message: 'API key salah atau tidak ada'};\n    msg.headers = {'Access-Control-Allow-Origin': '*'};\n    return msg;\n}\n\nvar data = flow.get('lastSensor') || {suhu: null, kelembaban: null, timestamp: null};\nvar batas = flow.get('threshold');\nif (batas === undefined) { batas = 35; }\nmsg.payload = {\n    status: 'success',\n    data: data,\n    threshold: batas,\n    server_time: new Date().toISOString()\n};\nmsg.headers = {'Access-Control-Allow-Origin': '*'};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 350,
+        "wires": [
+            [
+                "95201a07a3a17fea"
+            ]
+        ]
+    },
+    {
+        "id": "95201a07a3a17fea",
+        "type": "http response",
+        "z": "a9c741e10837f545",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 640,
+        "y": 350,
+        "wires": []
+    },
+    {
+        "id": "b386c801039c2801",
+        "type": "http in",
+        "z": "a9c741e10837f545",
+        "name": "GET /api/history",
+        "url": "/api/history",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 420,
+        "wires": [
+            [
+                "e247d0f902b16fed"
+            ]
+        ]
+    },
+    {
+        "id": "e247d0f902b16fed",
+        "type": "function",
+        "z": "a9c741e10837f545",
+        "name": "Cek API Key",
+        "func": "var API_KEY = 'rahasia123';\nif (msg.req.headers['x-api-key'] !== API_KEY) {\n    msg.statusCode = 401;\n    msg.payload = {status: 'error', message: 'API key salah atau tidak ada'};\n    msg.headers = {'Access-Control-Allow-Origin': '*'};\n    return [null, msg];\n}\nreturn [msg, null];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 420,
+        "wires": [
+            [
+                "d17fe2b7aaf7c66d"
+            ],
+            [
+                "544edfec40af00f1"
+            ]
+        ]
+    },
+    {
+        "id": "d17fe2b7aaf7c66d",
+        "type": "sqlite",
+        "z": "a9c741e10837f545",
+        "mydb": "79959ea275e6a1f2",
+        "sqlquery": "fixed",
+        "sql": "SELECT suhu, kelembaban, timestamp, received, alert FROM (SELECT * FROM sensor ORDER BY id DESC LIMIT 50) ORDER BY id ASC;",
+        "name": "SELECT 50 terakhir",
+        "x": 620,
+        "y": 420,
+        "wires": [
+            [
+                "bcfa73c768c6a7f1"
+            ]
+        ]
+    },
+    {
+        "id": "bcfa73c768c6a7f1",
+        "type": "function",
+        "z": "a9c741e10837f545",
+        "name": "Build Response History",
+        "func": "var rows = msg.payload || [];\nrows.forEach(function (r) { r.alert = !!r.alert; });\nmsg.payload = {\n    status: 'success',\n    source: 'sqlite',\n    count: rows.length,\n    data: rows\n};\nmsg.headers = {'Access-Control-Allow-Origin': '*'};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 840,
+        "y": 420,
+        "wires": [
+            [
+                "544edfec40af00f1"
+            ]
+        ]
+    },
+    {
+        "id": "544edfec40af00f1",
+        "type": "http response",
+        "z": "a9c741e10837f545",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1060,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "fe9b8d5283f11f6b",
+        "type": "http in",
+        "z": "a9c741e10837f545",
+        "name": "POST /api/kontrol",
+        "url": "/api/kontrol",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 500,
+        "wires": [
+            [
+                "59bf1a56ae6c575b"
+            ]
+        ]
+    },
+    {
+        "id": "59bf1a56ae6c575b",
+        "type": "function",
+        "z": "a9c741e10837f545",
+        "name": "Validasi & Publish",
+        "func": "var API_KEY = 'rahasia123';\nif (msg.req.headers['x-api-key'] !== API_KEY) {\n    msg.statusCode = 401;\n    msg.payload = {status: 'error', message: 'API key salah atau tidak ada'};\n    msg.headers = {'Access-Control-Allow-Origin': '*'};\n    return [msg, null];\n}\n\nvar body = msg.payload;\nif (!body || !body.device || !body.action) {\n    msg.statusCode = 400;\n    msg.payload = {status: 'error', message: 'device dan action wajib diisi'};\n    msg.headers = {'Access-Control-Allow-Origin': '*'};\n    return [msg, null];\n}\n\nvar mqttMsg = {payload: body, topic: 'iot/kontrol'};\n\nmsg.statusCode = 200;\nmsg.payload = {status: 'success', message: 'Perintah terkirim', sent: body};\nmsg.headers = {'Access-Control-Allow-Origin': '*'};\nreturn [msg, mqttMsg];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 410,
+        "y": 500,
+        "wires": [
+            [
+                "9a27cc8226a720d3"
+            ],
+            [
+                "54cade6fd76dfa8d"
+            ]
+        ]
+    },
+    {
+        "id": "9a27cc8226a720d3",
+        "type": "http response",
+        "z": "a9c741e10837f545",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 640,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "54cade6fd76dfa8d",
+        "type": "mqtt out",
+        "z": "a9c741e10837f545",
+        "name": "Publish Kontrol",
+        "topic": "",
+        "qos": "0",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "mqtt_broker_config",
+        "x": 650,
+        "y": 530,
+        "wires": []
+    },
+    {
+        "id": "f5fb536d6e951c32",
+        "type": "mqtt in",
+        "z": "a9c741e10837f545",
+        "name": "ESP32 terima kontrol",
+        "topic": "iot/kontrol",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "mqtt_broker_config",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 180,
+        "y": 580,
+        "wires": [
+            [
+                "f9b41cca0cc39951"
+            ]
+        ]
+    },
+    {
+        "id": "f9b41cca0cc39951",
+        "type": "debug",
+        "z": "a9c741e10837f545",
+        "name": "Perintah Diterima",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "x": 440,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "52ec885c65566fec",
+        "type": "http in",
+        "z": "a9c741e10837f545",
+        "name": "GET /api/threshold",
+        "url": "/api/threshold",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 650,
+        "wires": [
+            [
+                "dc91b92160b456d9"
+            ]
+        ]
+    },
+    {
+        "id": "dc91b92160b456d9",
+        "type": "function",
+        "z": "a9c741e10837f545",
+        "name": "Baca Batas Suhu",
+        "func": "var API_KEY = 'rahasia123';\nif (msg.req.headers['x-api-key'] !== API_KEY) {\n    msg.statusCode = 401;\n    msg.payload = {status: 'error', message: 'API key salah atau tidak ada'};\n    msg.headers = {'Access-Control-Allow-Origin': '*'};\n    return msg;\n}\n\nvar batas = flow.get('threshold');\nif (batas === undefined) { batas = 35; }\nmsg.payload = {status: 'success', threshold: batas};\nmsg.headers = {'Access-Control-Allow-Origin': '*'};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 410,
+        "y": 650,
+        "wires": [
+            [
+                "64c8847d937aa806"
+            ]
+        ]
+    },
+    {
+        "id": "64c8847d937aa806",
+        "type": "http response",
+        "z": "a9c741e10837f545",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 640,
+        "y": 650,
+        "wires": []
+    },
+    {
+        "id": "20e4f13f31bb2e75",
+        "type": "http in",
+        "z": "a9c741e10837f545",
+        "name": "PUT /api/threshold",
+        "url": "/api/threshold",
+        "method": "put",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 710,
+        "wires": [
+            [
+                "6661204f7c67eec4"
+            ]
+        ]
+    },
+    {
+        "id": "6661204f7c67eec4",
+        "type": "function",
+        "z": "a9c741e10837f545",
+        "name": "Set Batas Suhu",
+        "func": "var API_KEY = 'rahasia123';\nif (msg.req.headers['x-api-key'] !== API_KEY) {\n    msg.statusCode = 401;\n    msg.payload = {status: 'error', message: 'API key salah atau tidak ada'};\n    msg.headers = {'Access-Control-Allow-Origin': '*'};\n    return msg;\n}\n\nvar b = msg.payload ? msg.payload.batas : undefined;\nif (typeof b !== 'number' || isNaN(b)) {\n    msg.statusCode = 400;\n    msg.payload = {status: 'error', message: 'batas harus berupa angka'};\n} else {\n    flow.set('threshold', b);\n    msg.payload = {status: 'success', message: 'Batas suhu diperbarui', threshold: b};\n}\nmsg.headers = {'Access-Control-Allow-Origin': '*'};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 410,
+        "y": 710,
+        "wires": [
+            [
+                "65fd4f96fec1e6e3"
+            ]
+        ]
+    },
+    {
+        "id": "65fd4f96fec1e6e3",
+        "type": "http response",
+        "z": "a9c741e10837f545",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 640,
+        "y": 710,
+        "wires": []
+    },
+    {
+        "id": "mqtt_broker_config",
+        "type": "mqtt-broker",
+        "name": "Local Mosquitto",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "node-red-backend",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true
+    },
+    {
+        "id": "79959ea275e6a1f2",
+        "type": "sqlitedb",
+        "db": "iot_history.db",
+        "mode": "RWC"
+    },
+    {
+        "id": "0a41b418ea35d360",
+        "type": "websocket-listener",
+        "path": "/ws/sensor",
+        "wholemsg": "false"
+    },
+    {
+        "id": "7d0857c8d24d3321",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-node-sqlite": "2.0.1"
+        }
+    }
+]
